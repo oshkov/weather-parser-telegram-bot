@@ -245,9 +245,9 @@ def weather(message):
             break
 
         # Повтор запроса, если не получилось спарсить информацию
-        except AttributeError:
-            print(f"Не получилось спарсить инфу")
-            time.sleep(1)
+        except:
+            print(f"Не получилось спарсить информацию")
+            time.sleep(2)
 
 # Команды при нажатии на кнопки клавиатуры
 @bot.callback_query_handler(func=lambda call: True)
@@ -341,9 +341,9 @@ def callback_inline(call):
                 
                 break
 
-            except Exception as x:
-                print(x)
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Что то пошло не так, повторите попытку чуть позже", reply_markup=markup)
+            except:
+                # bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Что то пошло не так, повторите попытку чуть позже", reply_markup=markup)
+                time.sleep(2)
 
     # Проверка на уведомления, от которого зависит последняя кнопка в клавиатуре
     for i in sql.execute("SELECT notification FROM users WHERE id = ?", (call.from_user.id, )):
@@ -411,11 +411,10 @@ def callback_inline(call):
             markup.row(btn1, btn2, btn3)
             markup.add(btn4, btn5)
 
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 • · ·", reply_markup=markup) # Сообщение, показывающее поиск информации
-
         # Парсинг информации
         while True:
             try:
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 • · ·", reply_markup=markup) # Сообщение, показывающее поиск информации
                 for i in sql.execute("SELECT url FROM users WHERE id = ?", (call.from_user.id, )):
                     url = i[0]
                 url1 = url + "now"
@@ -440,9 +439,9 @@ def callback_inline(call):
                 break
 
             # Повтор запроса, если не получилось спарсить информацию
-            except AttributeError:
-                print(f"Не получилось спарсить инфу")
-                time.sleep(1)
+            except:
+                print(f"Не получилось спарсить информацию")
+                time.sleep(2)
 
     # Исход при нажатии на кнопку "сегодня"
     elif call.data == "pogodaToday":
@@ -469,11 +468,10 @@ def callback_inline(call):
             markup.row(btn1, btn2, btn3)
             markup.add(btn4, btn5)
 
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 • · ·", reply_markup=markup) # Сообщение, показывающее поиск информации
-
         # Парсинг информации
         while True:
             try:
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 • · ·", reply_markup=markup) # Сообщение, показывающее поиск информации
                 for i in sql.execute("SELECT url FROM users WHERE id = ?", (call.from_user.id, )):
                     url = i[0]
                 HEADERS = {'User-Agent': fake_useragent.UserAgent().random} #Создание фэйк юзер агент
@@ -482,9 +480,9 @@ def callback_inline(call):
                 bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · • ·", reply_markup=markup) # Сообщение, показывающее поиск информации
                 title = html.find("div", {"class": "page-title"})
                 titleText = title.find("h1").get_text()
-
                 bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · · •", reply_markup=markup) # Сообщение, показывающее поиск информации
                 date = html.find_all("div", {"class": "date"})[1].get_text(strip=True)
+
                 bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"""{titleText} сегодня ({date}):
 
 *{timings(3)}.00:* {temp(9)}°, {status(3)}, {wind(3)} м/с
@@ -496,9 +494,9 @@ def callback_inline(call):
                 break
 
             # Повтор запроса, если не получилось спарсить информацию
-            except AttributeError:
-                print(f"Не получилось спарсить инфу")
-                time.sleep(1)
+            except:
+                print(f"Не получилось спарсить информацию")
+                time.sleep(2)
 
     # Исход при нажатии на кнопку "завтра"
     elif call.data == 'pogodaTomorrow':
@@ -525,11 +523,10 @@ def callback_inline(call):
             markup.row(btn1, btn2, btn3)
             markup.add(btn4, btn5)
 
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 • · ·", reply_markup=markup) # Сообщение, показывающее поиск информации
-
         # Парсинг информации
         while True:
             try:
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 • · ·", reply_markup=markup) # Сообщение, показывающее поиск информации
                 for i in sql.execute("SELECT url FROM users WHERE id = ?", (call.from_user.id, )):
                     url = i[0]
                 HEADERS = {'User-Agent': fake_useragent.UserAgent().random} #Создание фэйк юзер агент
@@ -541,6 +538,7 @@ def callback_inline(call):
                 bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · · •", reply_markup=markup) # Сообщение, показывающее поиск информации
                 titleText = title.find("h1").get_text()
                 date = html.find_all("div", {"class": "date"})[1].get_text(strip=True)
+
                 bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"""{titleText} ({date}):
 
 *{timings(3)}.00:* {temp(9)}°, {status(3)}, {wind(3)} м/с
@@ -552,9 +550,9 @@ def callback_inline(call):
                 break
 
             # Повтор запроса, если не получилось спарсить информацию
-            except AttributeError:
-                print(f"Не получилось спарсить инфу")
-                time.sleep(1)
+            except :
+                print(f"Не получилось спарсить информацию")
+                time.sleep(2)
          
     # Исход при нажатии на кнопку "10 дней"
     elif call.data == 'pogoda10d':
@@ -581,22 +579,21 @@ def callback_inline(call):
             markup.row(btn1, btn2, btn3)
             markup.add(btn4, btn5)
 
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 • · ·", reply_markup=markup) # Сообщение, показывающее поиск информации
-
         # Парсинг информации
         while True:
             try:
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 • · ·", reply_markup=markup) # Сообщение, показывающее поиск информации
                 for i in sql.execute("SELECT url FROM users WHERE id = ?", (call.from_user.id, )):
                     url = i[0]
                 HEADERS = {'User-Agent': fake_useragent.UserAgent().random} #Создание фэйк юзер агент
                 url = url + "10-days/"
                 page = requests.get(url, headers=HEADERS)
                 html = BeautifulSoup(page.text, 'lxml') #Получение кода страницы
-
                 bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · • ·", reply_markup=markup) # Сообщение, показывающее поиск информации
                 title = html.find("div", {"class": "page-title"})
                 bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · · •", reply_markup=markup) # Сообщение, показывающее поиск информации
                 titleText = title.find("h1").get_text()
+
                 bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"""{titleText}:
 
 *{day(0)} ({date(0)}):* {temp(1)}°, {status(0)}
@@ -613,9 +610,9 @@ def callback_inline(call):
                 break
 
             # Повтор запроса, если не получилось спарсить информацию
-            except AttributeError:
-                print(f"Не получилось спарсить инфу")
-                time.sleep(1)
+            except:
+                print(f"Не получилось спарсить информацию")
+                time.sleep(2)
 
     # Вывод погоды при изменении параметра уведомлений при показе погоды "сейчас"
     elif call.data == 'notifNow':
@@ -669,9 +666,9 @@ def callback_inline(call):
                 break
 
             # Повтор запроса, если не получилось спарсить информацию
-            except AttributeError:
-                print(f"Не получилось спарсить инфу")
-                time.sleep(1)
+            except:
+                print(f"Не получилось спарсить информацию")
+                time.sleep(2)
 
     # Вывод погоды при изменении параметра уведомлений при показе погоды "сегодня"
     elif call.data == 'notifToday':
@@ -722,9 +719,9 @@ def callback_inline(call):
                 break
 
             # Повтор запроса, если не получилось спарсить информацию
-            except AttributeError:
-                print(f"Не получилось спарсить инфу")
-                time.sleep(1)
+            except:
+                print(f"Не получилось спарсить информацию")
+                time.sleep(2)
 
 
     # Вывод погоды при изменении параметра уведомлений при показе погоды "завтра"
@@ -777,9 +774,9 @@ def callback_inline(call):
                 break
 
             # Повтор запроса, если не получилось спарсить информацию
-            except AttributeError:
-                print(f"Не получилось спарсить инфу")
-                time.sleep(1)
+            except:
+                print(f"Не получилось спарсить информацию")
+                time.sleep(2)
 
     # Вывод погоды при изменении параметра уведомлений при показе погоды "10 дней"
     elif call.data == 'notif10d':
@@ -836,9 +833,9 @@ def callback_inline(call):
                 break
 
             # Повтор запроса, если не получилось спарсить информацию
-            except AttributeError:
-                print(f"Не получилось спарсить инфу")
-                time.sleep(1)
+            except:
+                print(f"Не получилось спарсить информацию")
+                time.sleep(2)
 
     # Исход при нажатии на кнопку "изменить город"
     elif call.data == 'edit':
