@@ -203,24 +203,38 @@ def weather(message):
 
     # Создается клавиатура
     markup = types.InlineKeyboardMarkup(row_width=2)
-    btn1 = types.InlineKeyboardButton("Сегодня", callback_data='pogodaToday')
-    btn2 = types.InlineKeyboardButton("Завтра", callback_data='pogodaTomorrow')
-    btn3 = types.InlineKeyboardButton("10 дней", callback_data='pogoda10d')
-    markup.row(btn1, btn2, btn3)
+    btn1 = types.InlineKeyboardButton("Сейчас", callback_data='pogodaNow')
+    btn2 = types.InlineKeyboardButton("Сегодня", callback_data='pogodaToday')
+    markup.row(btn1, btn2)
+    btn3 = types.InlineKeyboardButton("Завтра", callback_data='pogodaTomorrow')
+    btn4 = types.InlineKeyboardButton("10 дней", callback_data='pogoda10d')
+    markup.row(btn3, btn4)
 
     # Проверка на уведомления
     if notif == 0:
-        btn4 = types.InlineKeyboardButton("Изменить город", callback_data='edit')
         btn5 = types.InlineKeyboardButton("Вкл. уведомления", callback_data='notifNow')
-        markup.add(btn4, btn5)
+        markup.add(btn5)
     else:
-        btn4 = types.InlineKeyboardButton("Изменить город", callback_data='edit')
         btn5 = types.InlineKeyboardButton("Выкл. уведомления", callback_data='notifNow')
-        markup.add(btn4, btn5)
+        markup.add(btn5)
 
     # Поиск погоды по городу пользователя
-    while True:
+    attempt = 0
+    while attempt <= 3:
+        if attempt == 3:
+            bot.edit_message_text(chat_id=message.chat.id, message_id=search.message_id, text=f"""Погода не найдена.
+                             
+Для последующих запросов можете воспользоваться клавиатурой""", reply_markup=markup, parse_mode="Markdown")
+            
+            break
+
         try:
+
+            if attempt == 0:
+                search = bot.send_message(message.chat.id, f"Поиск информации 🔍 • · ·", reply_markup=markup)
+            else:
+                bot.edit_message_text(chat_id=message.chat.id, message_id=search.message_id, text=f"""Поиск информации 🔍 • · ·""", reply_markup=markup, parse_mode="Markdown")
+
             for i in sql.execute("SELECT url FROM users WHERE id = ?", (message.from_user.id, )):
                 url = i[0]
             url1 = url + "now"
@@ -231,23 +245,35 @@ def weather(message):
             titleText = title.find("h1").get_text()
             tempNow = html.find_all("span", {"class": "unit unit_temperature_c"})[0].get_text(strip=True)
             status = html.find("div", {"class": "now-desc"}).get_text(strip=True)
+            bot.edit_message_text(chat_id=message.chat.id, message_id=search.message_id, text=f"""Поиск информации 🔍 · • ·""", reply_markup=markup, parse_mode="Markdown")
             tempFeel = html.find_all("span", {"class": "unit unit_temperature_c"})[7].get_text(strip=True)
             wind = html.find("div", {"class": "unit unit_wind_m_s"})
+            bot.edit_message_text(chat_id=message.chat.id, message_id=search.message_id, text=f"""Поиск информации 🔍 · · •""", reply_markup=markup, parse_mode="Markdown")
             wind.select_one('.item-measure').decompose()
             wind = wind.get_text()
 
-            bot.send_message(message.chat.id, f"""{titleText}:
+
+            bot.edit_message_text(chat_id=message.chat.id, message_id=search.message_id, text=f"""{titleText}:
 
 *{status}, {tempNow}°, {wind} м/c*
 
 По ощущению {tempFeel}""", reply_markup=markup, parse_mode="Markdown")
-                
+
             break
 
         # Повтор запроса, если не получилось спарсить информацию
         except:
             print(f"Не получилось спарсить информацию")
-            time.sleep(2)
+            attempt = attempt + 1
+            time.sleep(0.5)
+
+# Команда /changecity
+@bot.message_handler(commands=["changecity"])
+def weather(message):
+
+    global messageWriteCity1
+    messageWriteCity1 = bot.send_message(message.chat.id, text="Напиши название города")
+    bot.register_next_step_handler(messageWriteCity1, addCity); # Переход на функцию добавления города в базу данных
 
 # Команды при нажатии на кнопки клавиатуры
 @bot.callback_query_handler(func=lambda call: True)
@@ -290,6 +316,41 @@ def callback_inline(call):
     def wind(num):
         wind = html.find_all("span", {"class": "wind-unit unit unit_wind_m_s"})[num].get_text()
         return wind
+    
+    def addMarkup(period):
+        # Проверка уведомлений на вкл/выкл
+        for i in sql.execute("SELECT notification FROM users WHERE id = ?", (call.from_user.id, )):
+            notif = i[0]
+        # Создается клавиатура
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        btn1 = types.InlineKeyboardButton("Сейчас", callback_data='pogodaNow')
+        btn2 = types.InlineKeyboardButton("Сегодня", callback_data='pogodaToday')
+        markup.row(btn1, btn2)
+        btn3 = types.InlineKeyboardButton("10 дней", callback_data='pogoda10d')
+        btn4 = types.InlineKeyboardButton("Завтра", callback_data='pogodaTomorrow')
+        markup.row(btn3, btn4)
+        # Проверка на уведомления
+        if notif == 0:
+            if period == "now":
+                btn5 = types.InlineKeyboardButton("Вкл. уведомления", callback_data='notifNow')
+            elif period == "today":
+                btn5 = types.InlineKeyboardButton("Вкл. уведомления", callback_data='notifToday')
+            elif period == "tomorrow":
+                btn5 = types.InlineKeyboardButton("Вкл. уведомления", callback_data='notifTomorrow')
+            elif period == "10d":
+                btn5 = types.InlineKeyboardButton("Вкл. уведомления", callback_data='notif10d')
+            markup.add(btn5)
+        else:
+            if period == "now":
+                btn5 = types.InlineKeyboardButton("Выкл. уведомления", callback_data='notifNow')
+            elif period == "today":
+                btn5 = types.InlineKeyboardButton("Выкл. уведомления", callback_data='notifToday')
+            elif period == "tomorrow":
+                btn5 = types.InlineKeyboardButton("Выкл. уведомления", callback_data='notifTomorrow')
+            elif period == "10d":
+                btn5 = types.InlineKeyboardButton("Выкл. уведомления", callback_data='notif10d')
+            markup.add(btn5)
+        return markup
 
     # Функция выключения уведомлений для пользователя
     def notifOff():
@@ -315,57 +376,45 @@ def callback_inline(call):
 
     # Функция, показывающая погоду сейчас после добавления города в базу данных
     def pogodaAdd(url):
-        while True:
+        attempt = 0
+        while attempt <= 3:
+            if attempt == 3:
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"""Погода не найдена.
+                                
+Для последующих запросов воспользуйтесь клавиатурой""", reply_markup=addMarkup("now"), parse_mode="Markdown")
+                
+                break
+
             try:
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 • · ·", reply_markup=markup) # Сообщение, показывающее поиск информации
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 • · ·", reply_markup=addMarkup("now")) # Сообщение, показывающее поиск информации
                 HEADERS = {'User-Agent': fake_useragent.UserAgent().random} #Создание фэйк юзер агент
                 url = url + "now"
                 page = requests.get(url, headers=HEADERS)
                 html = BeautifulSoup(page.text, 'lxml') #Получение кода страницы
                 title = html.find("div", {"class": "page-title"})
                 titleText = title.find("h1").get_text()
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · • ·", reply_markup=markup) # Сообщение, показывающее поиск информации
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · • ·", reply_markup=addMarkup("now")) # Сообщение, показывающее поиск информации
                 status = html.find("div", {"class": "now-desc"}).get_text(strip=True)
                 wind = html.find("div", {"class": "unit unit_wind_m_s"})
                 wind.select_one('.item-measure').decompose()
                 wind = wind.get_text()
                 temp = html.find_all("span", {"class": "unit unit_temperature_c"})[0].get_text(strip=True)
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · · •", reply_markup=markup) # Сообщение, показывающее поиск информации
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · · •", reply_markup=addMarkup("now")) # Сообщение, показывающее поиск информации
                 temp1 = html.find_all("span", {"class": "unit unit_temperature_c"})[1].get_text(strip=True)
 
                 bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"""{titleText}:
 
 *{status}, {temp}°, {wind} м/с*
 
-По ощущению {temp1}""", reply_markup=markup, parse_mode="Markdown")
+По ощущению {temp1}""", reply_markup=addMarkup("now"), parse_mode="Markdown")
                 
                 break
 
             except:
-                # bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Что то пошло не так, повторите попытку чуть позже", reply_markup=markup)
-                time.sleep(2)
+                print(f"Не получилось спарсить информацию")
+                attempt = attempt + 1
+                time.sleep(0.5)
 
-    # Проверка на уведомления, от которого зависит последняя кнопка в клавиатуре
-    for i in sql.execute("SELECT notification FROM users WHERE id = ?", (call.from_user.id, )):
-        notif = i[0]
-    if notif == 1:
-        markup = types.InlineKeyboardMarkup(row_width=2)
-        btn1 = types.InlineKeyboardButton("Сегодня", callback_data='pogodaToday')
-        btn2 = types.InlineKeyboardButton("Завтра", callback_data='pogodaTomorrow')
-        btn3 = types.InlineKeyboardButton("10 дней", callback_data='pogoda10d')
-        btn4 = types.InlineKeyboardButton("Изменить город", callback_data='edit')
-        btn5 = types.InlineKeyboardButton("Выкл. уведомления", callback_data='notifNow')
-        markup.row(btn1, btn2, btn3)
-        markup.add(btn4, btn5)
-    else:
-        markup = types.InlineKeyboardMarkup(row_width=2)
-        btn1 = types.InlineKeyboardButton("Сегодня", callback_data='pogodaToday')
-        btn2 = types.InlineKeyboardButton("Завтра", callback_data='pogodaTomorrow')
-        btn3 = types.InlineKeyboardButton("10 дней", callback_data='pogoda10d')
-        btn4 = types.InlineKeyboardButton("Изменить город", callback_data='edit')
-        btn5 = types.InlineKeyboardButton("Вкл. уведомления", callback_data='notifNow')
-        markup.row(btn1, btn2, btn3)
-        markup.add(btn4, btn5)
 
     # Исход при выборе первого города из списка
     if call.data == 'firstCity':
@@ -388,33 +437,18 @@ def callback_inline(call):
     # Исход при нажати на кнопку "сейчас"
     elif call.data == 'pogodaNow':
 
-        for i in sql.execute("SELECT notification FROM users WHERE id = ?", (call.from_user.id, )):
-            notif = i[0]
-
-        # Проверка на уведомления
-        if notif == 1:
-            markup = types.InlineKeyboardMarkup(row_width=2)
-            btn1 = types.InlineKeyboardButton("Сегодня", callback_data='pogodaToday')
-            btn2 = types.InlineKeyboardButton("Завтра", callback_data='pogodaTomorrow')
-            btn3 = types.InlineKeyboardButton("10 дней", callback_data='pogoda10d')
-            btn4 = types.InlineKeyboardButton("Изменить город", callback_data='edit')
-            btn5 = types.InlineKeyboardButton("Выкл. уведомления", callback_data='notifNow')
-            markup.row(btn1, btn2, btn3)
-            markup.add(btn4, btn5)
-        else:
-            markup = types.InlineKeyboardMarkup(row_width=2)
-            btn1 = types.InlineKeyboardButton("Сегодня", callback_data='pogodaToday')
-            btn2 = types.InlineKeyboardButton("Завтра", callback_data='pogodaTomorrow')
-            btn3 = types.InlineKeyboardButton("10 дней", callback_data='pogoda10d')
-            btn4 = types.InlineKeyboardButton("Изменить город", callback_data='edit')
-            btn5 = types.InlineKeyboardButton("Вкл. уведомления", callback_data='notifNow')
-            markup.row(btn1, btn2, btn3)
-            markup.add(btn4, btn5)
-
         # Парсинг информации
-        while True:
+        attempt = 0
+        while attempt <= 3:
+            if attempt == 3:
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"""Погода не найдена.
+                                
+Для последующих запросов воспользуйтесь клавиатурой""", reply_markup=addMarkup("now"), parse_mode="Markdown")
+                
+                break
+
             try:
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 • · ·", reply_markup=markup) # Сообщение, показывающее поиск информации
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 • · ·", reply_markup=addMarkup("now")) # Сообщение, показывающее поиск информации
                 for i in sql.execute("SELECT url FROM users WHERE id = ?", (call.from_user.id, )):
                     url = i[0]
                 url1 = url + "now"
@@ -424,9 +458,9 @@ def callback_inline(call):
                 title = html.find("div", {"class": "page-title"})
                 titleText = title.find("h1").get_text()
                 status = html.find("div", {"class": "now-desc"}).get_text(strip=True)
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · • ·", reply_markup=markup) # Сообщение, показывающее поиск информации
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · • ·", reply_markup=addMarkup("now")) # Сообщение, показывающее поиск информации
                 wind = html.find("div", {"class": "unit unit_wind_m_s"})
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · · •", reply_markup=markup) # Сообщение, показывающее поиск информации
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · · •", reply_markup=addMarkup("now")) # Сообщение, показывающее поиск информации
                 wind.select_one('.item-measure').decompose()
                 wind = wind.get_text()
 
@@ -434,53 +468,40 @@ def callback_inline(call):
 
 *{status}, {temp(0)}°, {wind} м/с*
 
-По ощущению {temp(1)}""", reply_markup=markup, parse_mode="Markdown")
+По ощущению {temp(1)}""", reply_markup=addMarkup("now"), parse_mode="Markdown")
                 
                 break
 
             # Повтор запроса, если не получилось спарсить информацию
             except:
                 print(f"Не получилось спарсить информацию")
-                time.sleep(2)
+                attempt = attempt + 1
+                time.sleep(0.5)
 
     # Исход при нажатии на кнопку "сегодня"
     elif call.data == "pogodaToday":
 
-        for i in sql.execute("SELECT notification FROM users WHERE id = ?", (call.from_user.id, )):
-            notif = i[0]
-
-        if notif == 1:
-            markup = types.InlineKeyboardMarkup(row_width=2)
-            btn1 = types.InlineKeyboardButton("Сейчас", callback_data='pogodaNow')
-            btn2 = types.InlineKeyboardButton("Завтра", callback_data='pogodaTomorrow')
-            btn3 = types.InlineKeyboardButton("10 дней", callback_data='pogoda10d')
-            btn4 = types.InlineKeyboardButton("Изменить город", callback_data='edit')
-            btn5 = types.InlineKeyboardButton("Выкл. уведомления", callback_data='notifToday')
-            markup.row(btn1, btn2, btn3)
-            markup.add(btn4, btn5)
-        else:
-            markup = types.InlineKeyboardMarkup(row_width=2)
-            btn1 = types.InlineKeyboardButton("Сейчас", callback_data='pogodaNow')
-            btn2 = types.InlineKeyboardButton("Завтра", callback_data='pogodaTomorrow')
-            btn3 = types.InlineKeyboardButton("10 дней", callback_data='pogoda10d')
-            btn4 = types.InlineKeyboardButton("Изменить город", callback_data='edit')
-            btn5 = types.InlineKeyboardButton("Вкл. уведомления", callback_data='notifToday')
-            markup.row(btn1, btn2, btn3)
-            markup.add(btn4, btn5)
-
         # Парсинг информации
-        while True:
+        attempt = 0
+        while attempt <= 3:
+            if attempt == 3:
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"""Погода не найдена.
+                                
+Для последующих запросов воспользуйтесь клавиатурой""", reply_markup=addMarkup("today"), parse_mode="Markdown")
+                
+                break
+
             try:
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 • · ·", reply_markup=markup) # Сообщение, показывающее поиск информации
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 • · ·", reply_markup=addMarkup("today")) # Сообщение, показывающее поиск информации
                 for i in sql.execute("SELECT url FROM users WHERE id = ?", (call.from_user.id, )):
                     url = i[0]
                 HEADERS = {'User-Agent': fake_useragent.UserAgent().random} #Создание фэйк юзер агент
                 page = requests.get(url, headers=HEADERS)
                 html = BeautifulSoup(page.text, 'lxml') #Получение кода страницы
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · • ·", reply_markup=markup) # Сообщение, показывающее поиск информации
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · • ·", reply_markup=addMarkup("today")) # Сообщение, показывающее поиск информации
                 title = html.find("div", {"class": "page-title"})
                 titleText = title.find("h1").get_text()
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · · •", reply_markup=markup) # Сообщение, показывающее поиск информации
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · · •", reply_markup=addMarkup("today")) # Сообщение, показывающее поиск информации
                 date = html.find_all("div", {"class": "date"})[1].get_text(strip=True)
 
                 bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"""{titleText} сегодня ({date}):
@@ -489,53 +510,40 @@ def callback_inline(call):
 *{timings(4)}.00:* {temp(10)}°, {status(4)}, {wind(4)} м/с
 *{timings(5)}.00:* {temp(11)}°, {status(5)}, {wind(5)} м/с
 *{timings(6)}.00:* {temp(12)}°, {status(6)}, {wind(6)} м/с
-*{timings(7)}.00:* {temp(13)}°, {status(7)}, {wind(7)} м/с""", reply_markup=markup, parse_mode="Markdown")
+*{timings(7)}.00:* {temp(13)}°, {status(7)}, {wind(7)} м/с""", reply_markup=addMarkup("today"), parse_mode="Markdown")
                 
                 break
 
             # Повтор запроса, если не получилось спарсить информацию
             except:
                 print(f"Не получилось спарсить информацию")
-                time.sleep(2)
+                attempt = attempt + 1
+                time.sleep(0.5)
 
     # Исход при нажатии на кнопку "завтра"
     elif call.data == 'pogodaTomorrow':
 
-        for i in sql.execute("SELECT notification FROM users WHERE id = ?", (call.from_user.id, )):
-            notif = i[0]
-
-        if notif == 1:
-            markup = types.InlineKeyboardMarkup(row_width=2)
-            btn1 = types.InlineKeyboardButton("Сейчас", callback_data='pogodaNow')
-            btn2 = types.InlineKeyboardButton("Сегодня", callback_data='pogodaToday')
-            btn3 = types.InlineKeyboardButton("10 дней", callback_data='pogoda10d')
-            btn4 = types.InlineKeyboardButton("Изменить город", callback_data='edit')
-            btn5 = types.InlineKeyboardButton("Выкл. уведомления", callback_data='notifTomorrow')
-            markup.row(btn1, btn2, btn3)
-            markup.add(btn4, btn5)
-        else:
-            markup = types.InlineKeyboardMarkup(row_width=2)
-            btn1 = types.InlineKeyboardButton("Сейчас", callback_data='pogodaNow')
-            btn2 = types.InlineKeyboardButton("Сегодня", callback_data='pogodaToday')
-            btn3 = types.InlineKeyboardButton("10 дней", callback_data='pogoda10d')
-            btn4 = types.InlineKeyboardButton("Изменить город", callback_data='edit')
-            btn5 = types.InlineKeyboardButton("Вкл. уведомления", callback_data='notifTomorrow')
-            markup.row(btn1, btn2, btn3)
-            markup.add(btn4, btn5)
-
         # Парсинг информации
-        while True:
+        attempt = 0
+        while attempt <= 3:
+            if attempt == 3:
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"""Погода не найдена.
+                                
+Для последующих запросов воспользуйтесь клавиатурой""", reply_markup=addMarkup("tomorrow"), parse_mode="Markdown")
+                
+                break
+
             try:
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 • · ·", reply_markup=markup) # Сообщение, показывающее поиск информации
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 • · ·", reply_markup=addMarkup("tomorrow")) # Сообщение, показывающее поиск информации
                 for i in sql.execute("SELECT url FROM users WHERE id = ?", (call.from_user.id, )):
                     url = i[0]
                 HEADERS = {'User-Agent': fake_useragent.UserAgent().random} #Создание фэйк юзер агент
                 url = url + "tomorrow"
                 page = requests.get(url, headers=HEADERS)
                 html = BeautifulSoup(page.text, 'lxml') #Получение кода страницы
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · • ·", reply_markup=markup) # Сообщение, показывающее поиск информации
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · • ·", reply_markup=addMarkup("tomorrow")) # Сообщение, показывающее поиск информации
                 title = html.find("div", {"class": "page-title"})
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · · •", reply_markup=markup) # Сообщение, показывающее поиск информации
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · · •", reply_markup=addMarkup("tomorrow")) # Сообщение, показывающее поиск информации
                 titleText = title.find("h1").get_text()
                 date = html.find_all("div", {"class": "date"})[1].get_text(strip=True)
 
@@ -545,53 +553,40 @@ def callback_inline(call):
 *{timings(4)}.00:* {temp(10)}°, {status(4)}, {wind(4)} м/с
 *{timings(5)}.00:* {temp(11)}°, {status(5)}, {wind(5)} м/с
 *{timings(6)}.00:* {temp(12)}°, {status(6)}, {wind(6)} м/с
-*{timings(7)}.00:* {temp(13)}°, {status(7)}, {wind(7)} м/с""", reply_markup=markup, parse_mode="Markdown")
+*{timings(7)}.00:* {temp(13)}°, {status(7)}, {wind(7)} м/с""", reply_markup=addMarkup("tomorrow"), parse_mode="Markdown")
                 
                 break
 
             # Повтор запроса, если не получилось спарсить информацию
             except :
                 print(f"Не получилось спарсить информацию")
-                time.sleep(2)
+                attempt = attempt + 1
+                time.sleep(0.5)
          
     # Исход при нажатии на кнопку "10 дней"
     elif call.data == 'pogoda10d':
 
-        for i in sql.execute("SELECT notification FROM users WHERE id = ?", (call.from_user.id, )):
-            notif = i[0]
-
-        if notif == 1:
-            markup = types.InlineKeyboardMarkup(row_width=2)
-            btn1 = types.InlineKeyboardButton("Сейчас", callback_data='pogodaNow')
-            btn2 = types.InlineKeyboardButton("Сегодня", callback_data='pogodaToday')
-            btn3 = types.InlineKeyboardButton("Завтра", callback_data='pogodaTomorrow')
-            btn4 = types.InlineKeyboardButton("Изменить город", callback_data='edit')
-            btn5 = types.InlineKeyboardButton("Выкл. уведомления", callback_data='notif10d')
-            markup.row(btn1, btn2, btn3)
-            markup.add(btn4, btn5)
-        else:
-            markup = types.InlineKeyboardMarkup(row_width=2)
-            btn1 = types.InlineKeyboardButton("Сейчас", callback_data='pogodaNow')
-            btn2 = types.InlineKeyboardButton("Сегодня", callback_data='pogodaToday')
-            btn3 = types.InlineKeyboardButton("Завтра", callback_data='pogodaTomorrow')
-            btn4 = types.InlineKeyboardButton("Изменить город", callback_data='edit')
-            btn5 = types.InlineKeyboardButton("Вкл. уведомления", callback_data='notif10d')
-            markup.row(btn1, btn2, btn3)
-            markup.add(btn4, btn5)
-
         # Парсинг информации
-        while True:
+        attempt = 0
+        while attempt <= 3:
+            if attempt == 3:
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"""Погода не найдена.
+                                
+Для последующих запросов воспользуйтесь клавиатурой""", reply_markup=addMarkup("10d"), parse_mode="Markdown")
+                
+                break
+
             try:
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 • · ·", reply_markup=markup) # Сообщение, показывающее поиск информации
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 • · ·", reply_markup=addMarkup("10d")) # Сообщение, показывающее поиск информации
                 for i in sql.execute("SELECT url FROM users WHERE id = ?", (call.from_user.id, )):
                     url = i[0]
                 HEADERS = {'User-Agent': fake_useragent.UserAgent().random} #Создание фэйк юзер агент
                 url = url + "10-days/"
                 page = requests.get(url, headers=HEADERS)
                 html = BeautifulSoup(page.text, 'lxml') #Получение кода страницы
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · • ·", reply_markup=markup) # Сообщение, показывающее поиск информации
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · • ·", reply_markup=addMarkup("10d")) # Сообщение, показывающее поиск информации
                 title = html.find("div", {"class": "page-title"})
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · · •", reply_markup=markup) # Сообщение, показывающее поиск информации
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Поиск информации 🔍 · · •", reply_markup=addMarkup("10d")) # Сообщение, показывающее поиск информации
                 titleText = title.find("h1").get_text()
 
                 bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"""{titleText}:
@@ -605,14 +600,15 @@ def callback_inline(call):
 *{day(6)} ({date(6)}):* {temp(13)}°, {status(6)}
 *{day(7)} ({date(7)}):* {temp(15)}°, {status(7)}
 *{day(8)} ({date(8)}):* {temp(17)}°, {status(8)}
-*{day(9)} ({date(9)}):* {temp(19)}°, {status(9)}""", reply_markup=markup, parse_mode="Markdown")
+*{day(9)} ({date(9)}):* {temp(19)}°, {status(9)}""", reply_markup=addMarkup("10d"), parse_mode="Markdown")
                 
                 break
 
             # Повтор запроса, если не получилось спарсить информацию
             except:
                 print(f"Не получилось спарсить информацию")
-                time.sleep(2)
+                attempt = attempt + 1
+                time.sleep(0.5)
 
     # Вывод погоды при изменении параметра уведомлений при показе погоды "сейчас"
     elif call.data == 'notifNow':
@@ -620,29 +616,20 @@ def callback_inline(call):
             notif = i[0]
 
         if notif == 0:
-            markup = types.InlineKeyboardMarkup(row_width=2)
-            btn1 = types.InlineKeyboardButton("Сегодня", callback_data='pogodaToday')
-            btn2 = types.InlineKeyboardButton("Завтра", callback_data='pogodaTomorrow')
-            btn3 = types.InlineKeyboardButton("10 дней", callback_data='pogoda10d')
-            btn4 = types.InlineKeyboardButton("Изменить город", callback_data='edit')
-            btn5 = types.InlineKeyboardButton("Выкл. уведомления", callback_data='notifNow')
-            markup.row(btn1, btn2, btn3)
-            markup.add(btn4, btn5)
             notifOn()
         else:
-            markup = types.InlineKeyboardMarkup(row_width=2)
-            btn1 = types.InlineKeyboardButton("Сегодня", callback_data='pogodaToday')
-            btn2 = types.InlineKeyboardButton("Завтра", callback_data='pogodaTomorrow')
-            btn3 = types.InlineKeyboardButton("10 дней", callback_data='pogoda10d')
-            btn4 = types.InlineKeyboardButton("Изменить город", callback_data='edit')
-            btn5 = types.InlineKeyboardButton("Вкл. уведомления", callback_data='notifNow')
-            markup.row(btn1, btn2, btn3)
-            markup.add(btn4, btn5)
-
             notifOff()
 
         # Парсинг информации
-        while True:
+        attempt = 0
+        while attempt <= 3:
+            if attempt == 3:
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"""Погода не найдена.
+                                
+Для последующих запросов воспользуйтесь клавиатурой""", reply_markup=addMarkup("now"), parse_mode="Markdown")
+                
+                break
+
             try:
                 for i in sql.execute("SELECT url FROM users WHERE id = ?", (call.from_user.id, )):
                     url = i[0]
@@ -661,14 +648,15 @@ def callback_inline(call):
 
 *{status}, {temp(0)}°, {wind} м/с*
 
-По ощущению {temp(1)}""", reply_markup=markup, parse_mode="Markdown")
+По ощущению {temp(1)}""", reply_markup=addMarkup("now"), parse_mode="Markdown")
                 
                 break
 
             # Повтор запроса, если не получилось спарсить информацию
             except:
                 print(f"Не получилось спарсить информацию")
-                time.sleep(2)
+                attempt = attempt + 1
+                time.sleep(0.5)
 
     # Вывод погоды при изменении параметра уведомлений при показе погоды "сегодня"
     elif call.data == 'notifToday':
@@ -676,28 +664,20 @@ def callback_inline(call):
             notif = i[0]
 
         if notif == 0:
-            markup = types.InlineKeyboardMarkup(row_width=2)
-            btn1 = types.InlineKeyboardButton("Сейчас", callback_data='pogodaNow')
-            btn2 = types.InlineKeyboardButton("Завтра", callback_data='pogodaTomorrow')
-            btn3 = types.InlineKeyboardButton("10 дней", callback_data='pogoda10d')
-            btn4 = types.InlineKeyboardButton("Изменить город", callback_data='edit')
-            btn5 = types.InlineKeyboardButton("Выкл. уведомления", callback_data='notifToday')
-            markup.row(btn1, btn2, btn3)
-            markup.add(btn4, btn5)
             notifOn()
         else:
-            markup = types.InlineKeyboardMarkup(row_width=2)
-            btn1 = types.InlineKeyboardButton("Сейчас", callback_data='pogodaNow')
-            btn2 = types.InlineKeyboardButton("Завтра", callback_data='pogodaTomorrow')
-            btn3 = types.InlineKeyboardButton("10 дней", callback_data='pogoda10d')
-            btn4 = types.InlineKeyboardButton("Изменить город", callback_data='edit')
-            btn5 = types.InlineKeyboardButton("Вкл. уведомления", callback_data='notifToday')
-            markup.row(btn1, btn2, btn3)
-            markup.add(btn4, btn5)
             notifOff()
 
         # Парсинг информации
-        while True:
+        attempt = 0
+        while attempt <= 3:
+            if attempt == 3:
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"""Погода не найдена.
+                                
+Для последующих запросов воспользуйтесь клавиатурой""", reply_markup=addMarkup("today"), parse_mode="Markdown")
+                
+                break
+
             try:
                 for i in sql.execute("SELECT url FROM users WHERE id = ?", (call.from_user.id, )):
                     url = i[0]
@@ -714,14 +694,15 @@ def callback_inline(call):
 *{timings(4)}.00:* {temp(10)}°, {status(4)}, {wind(4)} м/с
 *{timings(5)}.00:* {temp(11)}°, {status(5)}, {wind(5)} м/с
 *{timings(6)}.00:* {temp(12)}°, {status(6)}, {wind(6)} м/с
-*{timings(7)}.00:* {temp(13)}°, {status(7)}, {wind(7)} м/с""", reply_markup=markup, parse_mode="Markdown")
+*{timings(7)}.00:* {temp(13)}°, {status(7)}, {wind(7)} м/с""", reply_markup=addMarkup("today"), parse_mode="Markdown")
                 
                 break
 
             # Повтор запроса, если не получилось спарсить информацию
             except:
                 print(f"Не получилось спарсить информацию")
-                time.sleep(2)
+                attempt = attempt + 1
+                time.sleep(0.5)
 
 
     # Вывод погоды при изменении параметра уведомлений при показе погоды "завтра"
@@ -730,28 +711,20 @@ def callback_inline(call):
             notif = i[0]
 
         if notif == 0:
-            markup = types.InlineKeyboardMarkup(row_width=2)
-            btn1 = types.InlineKeyboardButton("Сейчас", callback_data='pogodaNow')
-            btn2 = types.InlineKeyboardButton("Сегодня", callback_data='pogodaToday')
-            btn3 = types.InlineKeyboardButton("10 дней", callback_data='pogoda10d')
-            btn4 = types.InlineKeyboardButton("Изменить город", callback_data='edit')
-            btn5 = types.InlineKeyboardButton("Выкл. уведомления", callback_data='notifTomorrow')
-            markup.row(btn1, btn2, btn3)
-            markup.add(btn4, btn5)
             notifOn()
         else:
-            markup = types.InlineKeyboardMarkup(row_width=2)
-            btn1 = types.InlineKeyboardButton("Сейчас", callback_data='pogodaNow')
-            btn2 = types.InlineKeyboardButton("Сегодня", callback_data='pogodaToday')
-            btn3 = types.InlineKeyboardButton("10 дней", callback_data='pogoda10d')
-            btn4 = types.InlineKeyboardButton("Изменить город", callback_data='edit')
-            btn5 = types.InlineKeyboardButton("Вкл. уведомления", callback_data='notifTomorrow')
-            markup.row(btn1, btn2, btn3)
-            markup.add(btn4, btn5)
             notifOff()
 
         # Парсинг информации
-        while True:
+        attempt = 0
+        while attempt <= 3:
+            if attempt == 3:
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"""Погода не найдена.
+                                
+Для последующих запросов воспользуйтесь клавиатурой""", reply_markup=addMarkup("tomorrow"), parse_mode="Markdown")
+                
+                break
+
             try:
                 for i in sql.execute("SELECT url FROM users WHERE id = ?", (call.from_user.id, )):
                     url = i[0]
@@ -769,14 +742,15 @@ def callback_inline(call):
 *{timings(4)}.00:* {temp(10)}°, {status(4)}, {wind(4)} м/с
 *{timings(5)}.00:* {temp(11)}°, {status(5)}, {wind(5)} м/с
 *{timings(6)}.00:* {temp(12)}°, {status(6)}, {wind(6)} м/с
-*{timings(7)}.00:* {temp(13)}°, {status(7)}, {wind(7)} м/с""", reply_markup=markup, parse_mode="Markdown")
+*{timings(7)}.00:* {temp(13)}°, {status(7)}, {wind(7)} м/с""", reply_markup=addMarkup("tomorrow"), parse_mode="Markdown")
                 
                 break
 
             # Повтор запроса, если не получилось спарсить информацию
             except:
                 print(f"Не получилось спарсить информацию")
-                time.sleep(2)
+                attempt = attempt + 1
+                time.sleep(0.5)
 
     # Вывод погоды при изменении параметра уведомлений при показе погоды "10 дней"
     elif call.data == 'notif10d':
@@ -784,28 +758,20 @@ def callback_inline(call):
             notif = i[0]
 
         if notif == 0:
-            markup = types.InlineKeyboardMarkup(row_width=2)
-            btn1 = types.InlineKeyboardButton("Сейчас", callback_data='pogodaNow')
-            btn2 = types.InlineKeyboardButton("Сегодня", callback_data='pogodaToday')
-            btn3 = types.InlineKeyboardButton("Завтра", callback_data='pogodaTomorrow')
-            btn4 = types.InlineKeyboardButton("Изменить город", callback_data='edit')
-            btn5 = types.InlineKeyboardButton("Выкл. уведомления", callback_data='notif10d')
-            markup.row(btn1, btn2, btn3)
-            markup.add(btn4, btn5)
             notifOn()
         else:
-            markup = types.InlineKeyboardMarkup(row_width=2)
-            btn1 = types.InlineKeyboardButton("Сейчас", callback_data='pogodaNow')
-            btn2 = types.InlineKeyboardButton("Сегодня", callback_data='pogodaToday')
-            btn3 = types.InlineKeyboardButton("Завтра", callback_data='pogodaTomorrow')
-            btn4 = types.InlineKeyboardButton("Изменить город", callback_data='edit')
-            btn5 = types.InlineKeyboardButton("Вкл. уведомления", callback_data='notif10d')
-            markup.row(btn1, btn2, btn3)
-            markup.add(btn4, btn5)
             notifOff()
 
         # Парсинг информации
-        while True:
+        attempt = 0
+        while attempt <= 3:
+            if attempt == 3:
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"""Погода не найдена.
+                                
+Для последующих запросов воспользуйтесь клавиатурой""", reply_markup=addMarkup("10d"), parse_mode="Markdown")
+                
+                break
+
             try:
                 for i in sql.execute("SELECT url FROM users WHERE id = ?", (call.from_user.id, )):
                     url = i[0]
@@ -828,20 +794,15 @@ def callback_inline(call):
 *{day(6)} ({date(6)}):* {temp(13)}°, {status(6)}
 *{day(7)} ({date(7)}):* {temp(15)}°, {status(7)}
 *{day(8)} ({date(8)}):* {temp(17)}°, {status(8)}
-*{day(9)} ({date(9)}):* {temp(19)}°, {status(9)}""", reply_markup=markup, parse_mode="Markdown")
+*{day(9)} ({date(9)}):* {temp(19)}°, {status(9)}""", reply_markup=addMarkup("10d"), parse_mode="Markdown")
                 
                 break
 
             # Повтор запроса, если не получилось спарсить информацию
             except:
                 print(f"Не получилось спарсить информацию")
-                time.sleep(2)
-
-    # Исход при нажатии на кнопку "изменить город"
-    elif call.data == 'edit':
-        global messageWriteCity1
-        messageWriteCity1 = bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Напиши название города")
-        bot.register_next_step_handler(messageWriteCity1, addCity); # Переход на функцию добавления города в базу данных
+                attempt = attempt + 1
+                time.sleep(0.5)
 
     # Исход при запросе подробного списка пользователей с id
     elif call.data == 'list':

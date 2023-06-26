@@ -67,12 +67,13 @@ while True:
                     # Создание клавиатуры
                     markup = types.InlineKeyboardMarkup(row_width=2)
                     btn1 = types.InlineKeyboardButton("Сейчас", callback_data='pogodaNow')
-                    btn2 = types.InlineKeyboardButton("Завтра", callback_data='pogodaTomorrow')
+                    btn2 = types.InlineKeyboardButton("Сегодня", callback_data='pogodaToday')
+                    markup.row(btn1, btn2)
                     btn3 = types.InlineKeyboardButton("10 дней", callback_data='pogoda10d')
-                    btn4 = types.InlineKeyboardButton("Изменить город", callback_data='edit')
+                    btn4 = types.InlineKeyboardButton("Завтра", callback_data='pogodaTomorrow')
+                    markup.row(btn3, btn4)
                     btn5 = types.InlineKeyboardButton("Выкл. уведомления", callback_data='notifToday')
-                    markup.row(btn1, btn2, btn3)
-                    markup.add(btn4, btn5)
+                    markup.add(btn5)
 
                     # Отправка сообщения
                     bot.send_message(id, f"""{titleText} сегодня ({date}):
@@ -137,11 +138,12 @@ while True:
                     markup = types.InlineKeyboardMarkup(row_width=2)
                     btn1 = types.InlineKeyboardButton("Сейчас", callback_data='pogodaNow')
                     btn2 = types.InlineKeyboardButton("Сегодня", callback_data='pogodaToday')
+                    markup.row(btn1, btn2)
                     btn3 = types.InlineKeyboardButton("10 дней", callback_data='pogoda10d')
-                    btn4 = types.InlineKeyboardButton("Изменить город", callback_data='edit')
+                    btn4 = types.InlineKeyboardButton("Завтра", callback_data='pogodaTomorrow')
+                    markup.row(btn3, btn4)
                     btn5 = types.InlineKeyboardButton("Выкл. уведомления", callback_data='notifTomorrow')
-                    markup.row(btn1, btn2, btn3)
-                    markup.add(btn4, btn5)
+                    markup.add(btn5)
 
                     # Отправка сообщения
                     bot.send_message(id, f"""{titleText} ({date}):
