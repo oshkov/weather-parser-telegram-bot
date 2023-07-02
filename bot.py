@@ -27,7 +27,8 @@ def welcome(message):
     lastname TEXT,
     city TEXT,
     url TEXT,
-    notification INT
+    notification INT,
+    lastaction TEXT
 )""")
     db.commit()
 
@@ -35,7 +36,7 @@ def welcome(message):
     sql.execute(f"SELECT id FROM users WHERE id = ?", (message.from_user.id, ))
     if sql.fetchone() is None:
         jointime = time.strftime('%d.%m.%Y / %X')
-        sql.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (jointime ,message.from_user.id, message.from_user.username, message.from_user.first_name, message.from_user.last_name, 0, 0, 1))
+        sql.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", (jointime ,message.from_user.id, message.from_user.username, message.from_user.first_name, message.from_user.last_name, None, None, 1, None))
         db.commit()
     else:
         pass
@@ -197,6 +198,11 @@ def weather(message):
     db = sqlite3.connect("users.db")
     sql = db.cursor()
 
+    # Добавление последнего действия в бд
+    action = time.strftime('%d.%m.%Y / %X / ') + "Запрос погоды сейчас командой /weather"
+    sql.execute(f"UPDATE users SET lastaction = ? WHERE id = ?", (action , message.from_user.id))
+    db.commit()
+
     # Из таблицы берется значение, отвечающее за уведомления (0 - выкл, 1 - вкл)
     for i in sql.execute("SELECT notification FROM users WHERE id = ?", (message.from_user.id, )):
         notif = i[0]
@@ -317,6 +323,17 @@ def callback_inline(call):
         wind = html.find_all("span", {"class": "wind-unit unit unit_wind_m_s"})[num].get_text()
         return wind
     
+    # Функция добавления последнего действия пользователя в бд
+    def lastAction(action):
+        db = sqlite3.connect("users.db")
+        sql = db.cursor()
+        
+        action = time.strftime('%d.%m.%Y / %X / ') + action
+
+        sql.execute(f"UPDATE users SET lastaction = ? WHERE id = ?", (action , call.from_user.id))
+        db.commit()
+    
+    # Функция добавления клавиатуры к сообщениям
     def addMarkup(period):
         # Проверка уведомлений на вкл/выкл
         for i in sql.execute("SELECT notification FROM users WHERE id = ?", (call.from_user.id, )):
@@ -357,8 +374,6 @@ def callback_inline(call):
         db = sqlite3.connect("users.db")
         sql = db.cursor()
 
-        for i in sql.execute("SELECT notification FROM users WHERE id = ?", (call.from_user.id, )):
-            notif = i[0]
         sql.execute(f"UPDATE users SET notification = ? WHERE id = ?", (0, call.from_user.id))
         db.commit()
         bot.answer_callback_query(callback_query_id=call.id, show_alert=False, text="Уведомления выключены🔕")
@@ -368,8 +383,6 @@ def callback_inline(call):
         db = sqlite3.connect("users.db")
         sql = db.cursor()
 
-        for i in sql.execute("SELECT notification FROM users WHERE id = ?", (call.from_user.id, )):
-            notif = i[0]
         sql.execute(f"UPDATE users SET notification = ? WHERE id = ?", (1, call.from_user.id))
         db.commit()
         bot.answer_callback_query(callback_query_id=call.id, show_alert=True, text="Уведомления включены🔔\n\nВы будете получать уведомления в 7.00 и 21.00 каждый день")
@@ -436,6 +449,7 @@ def callback_inline(call):
 
     # Исход при нажати на кнопку "сейчас"
     elif call.data == 'pogodaNow':
+        lastAction("Запрос погоды сейчас")
 
         # Парсинг информации
         attempt = 0
@@ -480,6 +494,7 @@ def callback_inline(call):
 
     # Исход при нажатии на кнопку "сегодня"
     elif call.data == "pogodaToday":
+        lastAction("Запрос погоды на сегодня")
 
         # Парсинг информации
         attempt = 0
@@ -522,6 +537,7 @@ def callback_inline(call):
 
     # Исход при нажатии на кнопку "завтра"
     elif call.data == 'pogodaTomorrow':
+        lastAction("Запрос погоды на завтра")
 
         # Парсинг информации
         attempt = 0
@@ -565,6 +581,7 @@ def callback_inline(call):
          
     # Исход при нажатии на кнопку "10 дней"
     elif call.data == 'pogoda10d':
+        lastAction("Запрос погоды на 10 дней")
 
         # Парсинг информации
         attempt = 0
