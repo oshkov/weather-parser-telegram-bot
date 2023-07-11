@@ -57,81 +57,109 @@ def addCity(message):
     HEADERS = {'User-Agent': fake_useragent.UserAgent().random} # Создание фэйк юзер агент
     page = requests.get(link, headers=HEADERS)
     html = BeautifulSoup(page.text, 'lxml') # Получение кода страницы
-    try:
-        try:
-            list = html.find_all("div", {"class": "catalog-list"})[1] # Если есть аэропорты выбирается список с населенными пунктами
-        except:
-            list = html.find_all("div", {"class": "catalog-list"})[0] # Если нет аэропортов
 
-        # Проверка на количество найденных городов (Максимум 3 города)
-        try: 
-            city0 = list.find_all("div", {"class": "catalog-item"})[0] # Выбирается первый город из списка
-            nameOfCity0 = city0.find("a", {"class": "link-item"}).get_text(strip=True) # Получает название первого города из списка
-            district0 = city0.find("a", {"class": "link district"}).get_text(strip=True) # Получает республику
-            country0 = city0.find("a", {"class": "link country"}).get_text(strip=True) # Получает страну
-            global urlOfCity0
-            urlOfCity0 = "https://www.gismeteo.ru/" + city0.find("a", {"class": "link-item"}).get('href'); # Получает ссылку на погоду первого города из списка
+    attempt = 0 # Попытки для поиска города
+    while attempt <= 3:
 
-            # Создается клавиатура с одним городом, если другие не найдены
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            btn1 = types.InlineKeyboardButton(f"{nameOfCity0} ({district0} {country0})", callback_data='firstCity')
-            btn2 = types.InlineKeyboardButton("Выбрать другой город", callback_data='edit')
-            markup.add(btn1, btn2)
+        # Если это первая попытка, то отправляется сообщение о поиске
+        if attempt == 0:
+            search = bot.send_message(message.chat.id, "Поиск городов 🔍")
+
+        # Если город не найден за три попытки, то выдает сообщение ниже
+        elif attempt == 3:
+            markup = types.InlineKeyboardMarkup()
+            btn1 = types.InlineKeyboardButton("Выбрать другой город", callback_data='edit')
+            markup.add(btn1)
+
+            bot.edit_message_text(chat_id=message.chat.id, message_id=search.message_id, text=f"""Произошла ошибка. Повторите запрос еще раз""", reply_markup=markup, parse_mode="Markdown")
+            
+            # Удаление прочих сообщений бота
             try:
-                city1 = list.find_all("div", {"class": "catalog-item"})[1] #Выбирается второй город из списка
-                nameOfCity1 = city1.find("a", {"class": "link-item"}).get_text(strip=True) #Получает название первого города из списка
-                district1 = city1.find("a", {"class": "link district"}).get_text(strip=True) #Получает республику
-                country1 = city1.find("a", {"class": "link country"}).get_text(strip=True) #Получает страну
-                global urlOfCity1
-                urlOfCity1 = "https://www.gismeteo.ru/" + city1.find("a", {"class": "link-item"}).get('href')
+                bot.delete_message(message.chat.id, messageWriteCity.message_id)
+            except:
+                bot.delete_message(message.chat.id, messageWriteCity1.message_id)
 
-                # Создается клавиатура с двумя городами, если другие не найдены
+            break
+
+        try:
+            try:
+                list = html.find_all("div", {"class": "catalog-list"})[1] # Если есть аэропорты выбирается список с населенными пунктами
+            except:
+                list = html.find_all("div", {"class": "catalog-list"})[0] # Если нет аэропортов
+
+            # Проверка на количество найденных городов (Максимум 3 города)
+            try: 
+                city0 = list.find_all("div", {"class": "catalog-item"})[0] # Выбирается первый город из списка
+                nameOfCity0 = city0.find("a", {"class": "link-item"}).get_text(strip=True) # Получает название первого города из списка
+                district0 = city0.find("a", {"class": "link district"}).get_text(strip=True) # Получает республику
+                country0 = city0.find("a", {"class": "link country"}).get_text(strip=True) # Получает страну
+                global urlOfCity0
+                urlOfCity0 = "https://www.gismeteo.ru/" + city0.find("a", {"class": "link-item"}).get('href'); # Получает ссылку на погоду первого города из списка
+
+                # Создается клавиатура с одним городом, если другие не найдены
                 markup = types.InlineKeyboardMarkup(row_width=1)
                 btn1 = types.InlineKeyboardButton(f"{nameOfCity0} ({district0} {country0})", callback_data='firstCity')
-                btn2 = types.InlineKeyboardButton(f"{nameOfCity1} ({district1} {country1})", callback_data='secondCity')
-                btn3 = types.InlineKeyboardButton("Выбрать другой город", callback_data='edit')
-                markup.add(btn1, btn2, btn3)
+                btn2 = types.InlineKeyboardButton("Выбрать другой город", callback_data='edit')
+                markup.add(btn1, btn2)
                 try:
-                    city2 = list.find_all("div", {"class": "catalog-item"})[2] # Выбирается третий город из списка
-                    nameOfCity2 = city2.find("a", {"class": "link-item"}).get_text(strip=True) # Получает название первого города из списка
-                    district2 = city2.find("a", {"class": "link district"}).get_text(strip=True) # Получает республику
-                    country2 = city2.find("a", {"class": "link country"}).get_text(strip=True) # Получает страну
-                    global urlOfCity2
-                    urlOfCity2 = "https://www.gismeteo.ru/" + city2.find("a", {"class": "link-item"}).get('href')
+                    city1 = list.find_all("div", {"class": "catalog-item"})[1] #Выбирается второй город из списка
+                    nameOfCity1 = city1.find("a", {"class": "link-item"}).get_text(strip=True) #Получает название первого города из списка
+                    district1 = city1.find("a", {"class": "link district"}).get_text(strip=True) #Получает республику
+                    country1 = city1.find("a", {"class": "link country"}).get_text(strip=True) #Получает страну
+                    global urlOfCity1
+                    urlOfCity1 = "https://www.gismeteo.ru/" + city1.find("a", {"class": "link-item"}).get('href')
 
-                    # Создается клавиатура с тремя городами, даже если другие найдены
+                    # Создается клавиатура с двумя городами, если другие не найдены
                     markup = types.InlineKeyboardMarkup(row_width=1)
                     btn1 = types.InlineKeyboardButton(f"{nameOfCity0} ({district0} {country0})", callback_data='firstCity')
                     btn2 = types.InlineKeyboardButton(f"{nameOfCity1} ({district1} {country1})", callback_data='secondCity')
-                    btn3 = types.InlineKeyboardButton(f"{nameOfCity2} ({district2} {country2})", callback_data='thirdCity')
-                    btn4 = types.InlineKeyboardButton("Выбрать другой город", callback_data='edit')
-                    markup.add(btn1, btn2, btn3, btn4)
+                    btn3 = types.InlineKeyboardButton("Выбрать другой город", callback_data='edit')
+                    markup.add(btn1, btn2, btn3)
+                    try:
+                        city2 = list.find_all("div", {"class": "catalog-item"})[2] # Выбирается третий город из списка
+                        nameOfCity2 = city2.find("a", {"class": "link-item"}).get_text(strip=True) # Получает название первого города из списка
+                        district2 = city2.find("a", {"class": "link district"}).get_text(strip=True) # Получает республику
+                        country2 = city2.find("a", {"class": "link country"}).get_text(strip=True) # Получает страну
+                        global urlOfCity2
+                        urlOfCity2 = "https://www.gismeteo.ru/" + city2.find("a", {"class": "link-item"}).get('href')
+
+                        # Создается клавиатура с тремя городами, даже если другие найдены
+                        markup = types.InlineKeyboardMarkup(row_width=1)
+                        btn1 = types.InlineKeyboardButton(f"{nameOfCity0} ({district0} {country0})", callback_data='firstCity')
+                        btn2 = types.InlineKeyboardButton(f"{nameOfCity1} ({district1} {country1})", callback_data='secondCity')
+                        btn3 = types.InlineKeyboardButton(f"{nameOfCity2} ({district2} {country2})", callback_data='thirdCity')
+                        btn4 = types.InlineKeyboardButton("Выбрать другой город", callback_data='edit')
+                        markup.add(btn1, btn2, btn3, btn4)
+                    except:
+                        pass
                 except:
                     pass
             except:
                 pass
+
+            bot.send_message(message.chat.id, "Выбери город из предложенных", reply_markup=markup)
+
+            # Город добавляется в базу данных
+            sql.execute(f"UPDATE users SET city = ? WHERE id = ?", (message.text, message.from_user.id))
+            db.commit()
+
+            bot.delete_message(message.chat.id, message.message_id) # Сообщение с выбором города удаляется
+
+            # Удаление прочих сообщений бота
+            try:
+                bot.delete_message(message.chat.id, messageWriteCity.message_id)
+            except:
+                bot.delete_message(message.chat.id, messageWriteCity1.message_id)
+
+            bot.delete_message(message.chat.id, search.message_id)
+            
+            break
+
+        # Исключение, если город не найден
         except:
-            pass
-
-        bot.send_message(message.chat.id, "Выбери город из предложенных", reply_markup=markup)
-
-        # Город добавляется в базу данных
-        sql.execute(f"UPDATE users SET city = ? WHERE id = ?", (message.text, message.from_user.id))
-        db.commit()
-
-        bot.delete_message(message.chat.id, message.message_id) # Сообщение с выбором города удаляется
-
-        try:
-            bot.delete_message(message.chat.id, messageWriteCity.message_id)
-        except:
-            bot.delete_message(message.chat.id, messageWriteCity1.message_id)
-
-    # Исключение, если город не найден
-    except:
-        markup = types.InlineKeyboardMarkup()
-        btn1 = types.InlineKeyboardButton("Выбрать другой город", callback_data='edit')
-        markup.add(btn1)
-        bot.send_message(message.chat.id, "По вашему запросу ничего не найдено", reply_markup=markup)
+            print(f"Не получилось спарсить информацию")
+            attempt = attempt + 1
+            time.sleep(0.5)
 
 # Команда /about
 @bot.message_handler(commands=["about"])
@@ -824,6 +852,12 @@ def callback_inline(call):
     # Исход при запросе подробного списка пользователей с id
     elif call.data == 'list':
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f"Список пользователей:\n\n{mes}")
+
+    # Исход при нажатии на кнопку "изменить город"
+    elif call.data == 'edit':
+        global messageWriteCity1
+        messageWriteCity1 = bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Напиши название города")
+        bot.register_next_step_handler(messageWriteCity1, addCity); # Переход на функцию добавления города в базу данных
 
 # Ответ на сообщения от пользователя
 @bot.message_handler(content_types=["text"])
