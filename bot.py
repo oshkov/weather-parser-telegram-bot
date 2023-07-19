@@ -11,8 +11,8 @@ print("@weathersupporttgbot\n\nБот начал работу (",time.strftime('
 
 bot = telebot.TeleBot(config.TOKEN)
 
-# Команды /start и /edit
-@bot.message_handler(commands=["start", "edit"])
+# Команды /start и /changecity
+@bot.message_handler(commands=["start", "changecity"])
 def welcome(message):
 
     db = sqlite3.connect("users.db")
@@ -195,13 +195,9 @@ def weather(message):
                     if user == None:
                         for i in sql.execute("SELECT name FROM users WHERE id = ?", (id,)):
                             name = i[0]
-                        for i in sql.execute("SELECT url FROM users WHERE id = ?", (id,)):
-                            city = i[0]
                         u.append(name)
                         num = num + 1
                     else:
-                        for i in sql.execute("SELECT url FROM users WHERE id = ?", (id,)):
-                            city = i[0]
                         user = "@" + user
                         u.append(user)
                         num = num + 1
@@ -300,14 +296,6 @@ def weather(message):
             print(f"Не получилось спарсить информацию")
             attempt = attempt + 1
             time.sleep(0.5)
-
-# Команда /changecity
-@bot.message_handler(commands=["changecity"])
-def weather(message):
-
-    global messageWriteCity1
-    messageWriteCity1 = bot.send_message(message.chat.id, text="Напиши название города")
-    bot.register_next_step_handler(messageWriteCity1, addCity); # Переход на функцию добавления города в базу данных
 
 # Команды при нажатии на кнопки клавиатуры
 @bot.callback_query_handler(func=lambda call: True)
